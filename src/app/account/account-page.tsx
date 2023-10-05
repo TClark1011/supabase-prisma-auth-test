@@ -1,8 +1,8 @@
 "use client";
-import type { Session } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 
-const AccountPage = ({ session }: { session: Session | null }) => {
-  return <h1>{session?.user?.id}</h1>;
+const AccountPage = ({ user }: { user: User | undefined }) => {
+  return <h1>{user?.id}</h1>;
 };
 
 export default AccountPage;

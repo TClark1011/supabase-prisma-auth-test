@@ -6,7 +6,13 @@
  * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
  * need to use are documented accordingly near the end.
  */
+import {
+  type SupabaseClient,
+  createRouteHandlerClient,
+  type Session,
+} from "@supabase/auth-helpers-nextjs";
 import { initTRPC } from "@trpc/server";
+import type { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { type NextRequest } from "next/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
@@ -23,6 +29,8 @@ import { db } from "~/server/db";
 
 interface CreateContextOptions {
   headers: Headers;
+  supabase: SupabaseClient;
+  session?: Session;
 }
 
 /**
@@ -39,6 +47,8 @@ export const createInnerTRPCContext = (opts: CreateContextOptions) => {
   return {
     headers: opts.headers,
     db,
+    supabase: opts.supabase,
+    session: opts.session,
   };
 };
 
@@ -48,11 +58,19 @@ export const createInnerTRPCContext = (opts: CreateContextOptions) => {
  *
  * @see https://trpc.io/docs/context
  */
-export const createTRPCContext = (opts: { req: NextRequest }) => {
+export const createTRPCContext = async (opts: { req: NextRequest }) => {
   // Fetch stuff that depends on the request
+
+  const supabase = createRouteHandlerClient({
+    cookies: () => opts.req.cookies as never as ReadonlyRequestCookies,
+  });
+
+  const sessionResponse = await supabase.auth.getSession();
 
   return createInnerTRPCContext({
     headers: opts.req.headers,
+    supabase,
+    session: sessionResponse.data?.session ?? undefined,
   });
 };
 
